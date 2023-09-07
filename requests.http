@@ -1,0 +1,9 @@
+###
+POST http://localhost:3000/payments
+content-type: application/json
+
+{
+  "customer": "Test 3",
+  "amount": 200,
+  "delay": 1500
+} 
