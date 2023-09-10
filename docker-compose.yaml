@@ -1,0 +1,48 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: p@ssword
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+  traefik:
+    image: "traefik:v2.5"
+    command:
+      - "--api.insecure=true" # For the Traefik dashboard (insecure for demonstration purposes)
+      - "--providers.docker"
+      - "--entrypoints.web.address=:80" # Define the 'web' entry point
+    ports:
+      - "80:80" # Expose Traefik on port 80
+      - "8080:8080" # Expose Traefik dashboard on port 8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Mount the Docker socket to allow Traefik to watch for containers
+    networks:
+      - app-network
+
+  nestjs-app:
+    image: nestjs-cron-job-samples:1
+    environment:
+      - PORT=3000
+    deploy:
+      replicas: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nestjs-app.rule=Host(`localhost`)" # Replace with your hostname
+      - "traefik.http.routers.nestjs-app.entrypoints=web"
+      - "traefik.http.services.nestjs-app.loadbalancer.server.port=3000" # Container port
+    networks:
+      - app-network
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+
+networks:
+  app-network:
